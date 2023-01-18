@@ -1,0 +1,33 @@
+name: Deploy main branch to prd environment
+
+on:
+  push:
+    branches:
+      - main
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read    
+    env:
+      BUCKET_NAME: cfst-3457-d7cf858686255903632b7341e0d1-prodbucket-ab0dq8dd0m7a
+    steps:
+      - name: checkout
+        uses: actions/checkout@v2
+      - name: configure-aws
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+      - name: setup nodejs
+        uses: actions/setup-node@v2
+        with:
+          node-version: 14
+      - name: build
+        run: |
+          npm ci 
+          npm run build
+      - name: deploy to s3 bucket
+        run: aws s3 cp public s3://${{ env.BUCKET_NAME }}/ --recursive --acl public-read
